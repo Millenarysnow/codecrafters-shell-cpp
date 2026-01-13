@@ -14,8 +14,5 @@ namespace MyShell {
         virtual void Execute(std::vector<std::string>& Args) override;
 
     private:
-        std::vector<std::string> PathDir;
-
-        string is_exist(std::string& CmdName);
     };
 }

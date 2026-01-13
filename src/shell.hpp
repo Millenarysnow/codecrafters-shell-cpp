@@ -15,16 +15,19 @@ namespace MyShell{
     {
     public:
         Shell();
+        ~Shell();
 
         bool get_start() const { return Start; }
         void set_start(bool val) { Start = val; }
+
+        const vector<string>& get_dirs_vector() const { return PathDir; }
+        char** get_cargs() const { return CArgs; }
 
         bool is_builtin(const string& cmd) const;
 
         void input();
 
         void execute();
-
     private:
         bool Start = true;    
 
@@ -35,6 +38,12 @@ namespace MyShell{
 
         set<string> Commands;
         unordered_map<string, Command*> Execute;
-    };
 
+        std::vector<std::string> PathDir;
+
+        char** CArgs = nullptr;
+
+        void get_path_dirs();
+        void cast_args();
+    };
 }

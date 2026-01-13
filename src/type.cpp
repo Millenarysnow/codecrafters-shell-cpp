@@ -1,60 +1,13 @@
 #include "type.hpp"
 
-#ifdef _WIN32
-constexpr char PATH_LIST_SEPARATOR = ';';
-#include <io.h>
-#else
-constexpr char PATH_LIST_SEPARATOR = ':';
-#include <unistd.h>
-#endif
-
 #include <iostream>
 #include <cstdlib>
 #include <sstream>
 
+#include "utils.hpp"
+
 MyShell::Type::Type(MyShell::Shell *shell) : Command(shell)
-{
-    const char* value = std::getenv("PATH");
-    if(value != nullptr)
-    {
-        std::string Path = std::string(value);
-
-        std::stringstream ss;
-        ss.str(Path);
-
-        std::string temp;
-        while(getline(ss, temp, PATH_LIST_SEPARATOR))
-        {
-            PathDir.push_back(temp);
-        }
-    }
-    else
-    {
-        PathDir = {};
-    }
-}
-
-string MyShell::Type::is_exist(std::string &CmdName)
-{
-    string result;
-
-    for (auto& dir : PathDir)
-    {
-        std::string current_dir = dir + "/" + CmdName;
-
-#ifdef _WIN32
-        if (_access(current_dir.c_str(), 02) == 0)
-#else
-        if (access(current_dir.c_str(), X_OK) == 0)
-#endif
-        {
-            result = current_dir;
-            break;
-        }
-    }
-
-    return result;
-}
+{ }
 
 void MyShell::Type::Execute(std::vector<std::string> &Args)
 {
@@ -70,9 +23,9 @@ void MyShell::Type::Execute(std::vector<std::string> &Args)
         return;
     }
 
-    if(PathDir.size() > 0)
+    if(shell->get_dirs_vector().size() > 0)
     {
-        std::string res = is_exist(Args[0]);
+        std::string res = MyShell::is_exist(Args[0], shell->get_dirs_vector());
         if(!res.empty())
         {
             std::cout << Args[0] << " is " << res << std::endl;
