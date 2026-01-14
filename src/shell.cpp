@@ -15,6 +15,7 @@ constexpr char PATH_LIST_SEPARATOR = ':';
 #include "echo.hpp"
 #include "type.hpp"
 #include "pwd.hpp"
+#include "cd.hpp"
 #include "utils.hpp"
 
 MyShell::Shell::Shell()
@@ -23,9 +24,10 @@ MyShell::Shell::Shell()
     Echo* echo = new Echo(this);
     Type* type = new Type(this);
     Pwd* pwd = new Pwd(this);
+    Cd* cd = new Cd(this);
 
-    Commands.insert({"exit", "echo", "type", "pwd"});
-    Execute.insert({{"exit", exit}, {"echo", echo}, {"type", type}, {"pwd", pwd}});
+    Commands.insert({"exit", "echo", "type", "pwd", "cd"});
+    Execute.insert({{"exit", exit}, {"echo", echo}, {"type", type}, {"pwd", pwd}, {"cd", cd}});
 
     get_path_dirs();
 }
