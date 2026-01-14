@@ -56,16 +56,17 @@ void MyShell::Shell::input()
     Args.clear();
 
     std::getline(std::cin, Input);
-    
+
     Input += ' '; // 方便最后一个参数的处理
 
     string temp;
     bool InSingleQuote = false;
+    bool InDoubleQuote = false;
     for (int i = 0; i < Input.length(); i++)
     {
         if(Input[i] == ' ')
         {
-            if(InSingleQuote)
+            if(InSingleQuote || InDoubleQuote)
             {
                 temp += Input[i];
             }
@@ -87,7 +88,17 @@ void MyShell::Shell::input()
         }
         else if(Input[i] == '\'')
         {
-            InSingleQuote = !InSingleQuote;
+            if(InDoubleQuote == false)
+                InSingleQuote = !InSingleQuote;
+            else
+                temp += Input[i];
+        }
+        else if(Input[i] == '\"')
+        {
+            if(InSingleQuote == false)
+                InDoubleQuote = !InDoubleQuote;
+            else
+                temp += Input[i];
         }
         else
         {
