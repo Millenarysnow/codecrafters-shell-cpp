@@ -147,8 +147,9 @@ void MyShell::Shell::input()
 void MyShell::Shell::execute()
 {
     const int StdoutFd = dup(STDOUT_FILENO);
-
-    if (RedirectOperator != -1)
+    const int StderrFd = dup(STDERR_FILENO);
+    
+    if (RedirectOperator != -1) // 处理重定向
     {
         if (RedirectOperator + 1 < Args.size())
         {
@@ -157,15 +158,21 @@ void MyShell::Shell::execute()
             {
                 std::cout << "Redirection file open error" << std::endl;
                 close(StdoutFd);
+                close(StderrFd);
                 return;
             }
 
             Args.erase(Args.begin() + RedirectOperator, Args.begin() + RedirectOperator + 2);
 
-            dup2(FileFd, STDOUT_FILENO);
+            if(Args[RedirectOperator] == ">" || Args[RedirectOperator] == "1>")
+                dup2(FileFd, STDOUT_FILENO);
+            else if(Args[RedirectOperator] == "2>")
+                dup2(FileFd, STDERR_FILENO);
             close(FileFd);
         }
     }
+
+    // --------- 执行命令 ---------
 
     if (Commands.find(InputCommand) != Commands.end()) // 内置命令
     {
@@ -189,9 +196,11 @@ void MyShell::Shell::execute()
 
     std::cout.flush();
     fflush(stdout);
-    
+
     dup2(StdoutFd, STDOUT_FILENO);
     close(StdoutFd);
+    dup2(StderrFd, STDERR_FILENO);
+    close(StderrFd);
 }
 
 void MyShell::Shell::get_path_dirs()
