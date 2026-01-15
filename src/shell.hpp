@@ -43,6 +43,8 @@ namespace MyShell{
 
         char** CArgs = nullptr;
 
+        int RedirectOperator = -1;
+
         void get_path_dirs();
         void cast_args();
     };

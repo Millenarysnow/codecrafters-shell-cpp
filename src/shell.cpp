@@ -4,11 +4,14 @@
 constexpr char PATH_LIST_SEPARATOR = ';';
 #else
 constexpr char PATH_LIST_SEPARATOR = ':';
+#include <unistd.h>
+#include <fcntl.h>
 #endif
 
 #include <iostream>
 #include <sstream>
 #include <cstring>
+#include <algorithm>
 
 #include "exit.hpp"
 #include "echo.hpp"
@@ -54,10 +57,11 @@ void MyShell::Shell::input()
     Input.clear();
     InputCommand.clear();
     Args.clear();
+    RedirectOperator = -1;
 
     std::getline(std::cin, Input);
 
-    Input += ' '; // 方便最后一个参数的处理
+    Input += ' '; // 方便最后一个参数处理
 
     string temp;
     bool InSingleQuote = false;
@@ -81,6 +85,11 @@ void MyShell::Shell::input()
                     else
                     {
                         Args.push_back(temp);
+
+                        if(Args.back().back() == '>') // 定位重定向符号
+                        {
+                            RedirectOperator = Args.size() - 1;
+                        }
                     }
                     temp.clear();
                 }
@@ -109,7 +118,8 @@ void MyShell::Shell::input()
                 i++;
                 if(i < Input.length())
                 {
-                    if(Input[i] == '\"' || Input[i] == '\\')
+                    if(Input[i] == '\"' || Input[i] == '\\' || Input[i] == '$' || Input[i] == '`') // ！！没有处理转义换行符的情况
+                    // TODO: 处理转义换行符的情况
                         temp += Input[i];
                     else
                     {
@@ -136,24 +146,52 @@ void MyShell::Shell::input()
 
 void MyShell::Shell::execute()
 {
-    if(Commands.find(InputCommand) != Commands.end())
+    const int StdoutFd = dup(STDOUT_FILENO);
+
+    if (RedirectOperator != -1)
+    {
+        if (RedirectOperator + 1 < Args.size())
+        {
+            const int FileFd = open(Args[RedirectOperator + 1].c_str(), O_CREAT | O_WRONLY | O_TRUNC, 0644);
+            if (FileFd == -1)
+            {
+                std::cout << "Redirection file open error" << std::endl;
+                close(StdoutFd);
+                return;
+            }
+
+            Args.erase(Args.begin() + RedirectOperator, Args.begin() + RedirectOperator + 2);
+
+            dup2(FileFd, STDOUT_FILENO);
+            close(FileFd);
+        }
+    }
+
+    if (Commands.find(InputCommand) != Commands.end()) // 内置命令
     {
         Command* cmd = Execute[InputCommand];
         if (cmd)
             cmd->Execute(Args);
-
-        return ;
     }
-
-    string dir = MyShell::is_exist(InputCommand, PathDir);
-    if(!dir.empty())
+    else
     {
-        cast_args();
-        MyShell::call_external_program(dir, Args, this);
-        return ;
+        string dir = MyShell::is_exist(InputCommand, PathDir);
+        if (!dir.empty()) // 外部命令
+        {
+            cast_args(); 
+            MyShell::call_external_program(dir, Args, this);
+        }
+        else
+        {
+            std::cout << Input << ": " << "command not found" << std::endl;
+        }
     }
 
-    std::cout << Input << ": " << "command not found" << std::endl;
+    std::cout.flush();
+    fflush(stdout);
+    
+    dup2(StdoutFd, STDOUT_FILENO);
+    close(StdoutFd);
 }
 
 void MyShell::Shell::get_path_dirs()
