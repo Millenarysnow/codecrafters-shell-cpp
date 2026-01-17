@@ -6,12 +6,14 @@ constexpr char PATH_LIST_SEPARATOR = ';';
 constexpr char PATH_LIST_SEPARATOR = ':';
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/ioctl.h>
 #endif
 
 #include <iostream>
 #include <sstream>
 #include <cstring>
 #include <algorithm>
+#include <cstdlib>
 
 #include "linenoise.h"
 
@@ -66,7 +68,8 @@ void MyShell::Shell::Completion(const char *buf, linenoiseCompletions *lc)
     {
         if(cmd.find(CurrentInput) == 0)
         {
-            linenoiseAddCompletion(lc, string(cmd + ' ').c_str());
+            const string candidate = cmd + " ";
+            linenoiseAddCompletion(lc, candidate.c_str());
         }
     }
 }
@@ -94,6 +97,11 @@ void MyShell::Shell::input()
     Input = string(line);
 
     free(line);
+
+    if (!Input.empty() && Input.back() == '\r')
+    {
+        Input.pop_back();
+    }
 
     // ------ 分词并解析 ------
 
@@ -182,6 +190,11 @@ void MyShell::Shell::input()
 
 void MyShell::Shell::execute()
 {
+    if (InputCommand.empty() && Args.empty())
+    {
+        return;
+    }
+
     const int StdoutFd = dup(STDOUT_FILENO);
     const int StderrFd = dup(STDERR_FILENO);
 
@@ -206,8 +219,8 @@ void MyShell::Shell::execute()
 
             if (FileFd == -1)
             {
-                std::cout << tmp << std::endl;
-                std::cout << "Redirection file open error" << std::endl;
+                // std::cout << tmp << std::endl;
+                std::cerr << "Redirection file open error" << std::endl;
                 close(StdoutFd);
                 close(StderrFd);
                 return;
@@ -241,7 +254,7 @@ void MyShell::Shell::execute()
         }
         else
         {
-            std::cerr << Input << ": " << "command not found" << std::endl;
+            std::cout << InputCommand << ": " << "command not found" << std::endl;
         }
     }
 

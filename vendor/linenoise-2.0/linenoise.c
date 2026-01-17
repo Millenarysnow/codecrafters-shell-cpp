@@ -124,7 +124,7 @@ static char *unsupported_term[] = {"dumb","cons25","emacs",NULL};
 static linenoiseCompletionCallback *completionCallback = NULL;
 static linenoiseHintsCallback *hintsCallback = NULL;
 static linenoiseFreeHintsCallback *freeHintsCallback = NULL;
-static char *linenoiseNoTTY(void);
+static char *linenoiseNoTTY(const char *prompt);
 static void refreshLineWithCompletion(struct linenoiseState *ls, linenoiseCompletions *lc, int flags);
 static void refreshLineWithFlags(struct linenoiseState *l, int flags);
 
@@ -1316,7 +1316,7 @@ char *linenoiseEditMore = "If you see this, you are misusing the API: when linen
 char *linenoiseEditFeed(struct linenoiseState *l) {
     /* Not a TTY, pass control to line reading without character
      * count limits. */
-    if (!isatty(l->ifd) && !getenv("LINENOISE_ASSUME_TTY")) return linenoiseNoTTY();
+    if (!isatty(l->ifd) && !getenv("LINENOISE_ASSUME_TTY")) return linenoiseNoTTY(l->prompt);
 
     char c;
     int nread;
@@ -1563,9 +1563,14 @@ void linenoisePrintKeyCodes(void) {
  * program using linenoise is called in pipe or with a file redirected
  * to its standard input. In this case, we want to be able to return the
  * line regardless of its length (by default we are limited to 4k). */
-static char *linenoiseNoTTY(void) {
+static char *linenoiseNoTTY(const char *prompt) {
     char *line = NULL;
     size_t len = 0, maxlen = 0;
+
+    if (prompt) {
+        printf("%s", prompt);
+        fflush(stdout);
+    }
 
     while(1) {
         if (len == maxlen) {
@@ -1605,7 +1610,7 @@ char *linenoise(const char *prompt) {
     if (!isatty(STDIN_FILENO) && !getenv("LINENOISE_ASSUME_TTY")) {
         /* Not a tty: read from file / pipe. In this mode we don't want any
          * limit to the line size, so we call a function to handle that. */
-        return linenoiseNoTTY();
+        return linenoiseNoTTY(prompt);
     } else if (isUnsupportedTerm()) {
         size_t len;
 
