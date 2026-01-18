@@ -6,12 +6,17 @@
 #include <readline/readline.h>
 #endif
 
-extern char* command_generator(const char* text, int state);
+#include "shell.hpp"
+#include <string>
+#include <vector>
 
-void MyShell::cross_platform_register_linecompletion()
+static MyShell::Shell* ShellInstance = nullptr;
+
+void MyShell::cross_platform_register_linecompletion(Shell* shell)
 {
+    ShellInstance = shell;
 #ifdef _WIN32
-    linenoiseSetCompletionCallback(completion);
+    linenoiseSetCompletionCallback(MyShell::completion);
 #else
     rl_attempted_completion_function = [](const char* text, int start, int end) -> char** 
     {
@@ -32,3 +37,38 @@ char* MyShell::cross_platform_readline(char *prompt)
     return readline(prompt);
 #endif
 }
+
+#ifdef _WIN32
+    void MyShell::completion(const char *buf, linenoiseCompletions *lc)
+    {
+        auto matches = ShellInstance->match_comands(std::string(buf));
+
+        for (const auto& match : matches) 
+        {
+            linenoiseAddCompletion(lc, match.c_str());
+        }
+    }
+#else
+    char *MyShell::command_generator(const char *text, int state)
+    {
+        static std::vector<std::string> cache;
+        static int index;
+
+        if(state == 0)
+        {
+            cache = ShellInstance->match_comands(std::string(text));
+            index = 0;
+        }
+
+        if (index < cache.size()) 
+        {
+            return strdup(cache[(index++) % cache.size()].c_str());
+        } 
+        else 
+        {
+            return nullptr;
+        }
+
+        return nullptr;
+    }
+#endif

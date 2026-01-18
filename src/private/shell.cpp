@@ -25,26 +25,6 @@ constexpr char PATH_LIST_SEPARATOR = ':';
 
 static MyShell::Shell* ShellInstance = nullptr;
 
-char* command_generator(const char* text, int state) // 命令补全
-{
-    if (!ShellInstance) return nullptr;
-    
-    static std::set<string>::const_iterator it;
-    if (state == 0) {
-        it = ShellInstance->get_commands().begin();
-    }
-    
-    string text_str(text);
-    while (it != ShellInstance->get_commands().end()) {
-        const string& cmd = *it;
-        it++;
-        if (cmd.find(text_str) == 0) {
-            return strdup((cmd).c_str());
-        }
-    }
-    return nullptr;
-}
-
 MyShell::Shell::Shell()
 {
     ShellInstance = this;
@@ -59,7 +39,7 @@ MyShell::Shell::Shell()
 
     get_path_dirs();
 
-    MyShell::cross_platform_register_linecompletion();
+    MyShell::cross_platform_register_linecompletion(this);
 }
 
 MyShell::Shell::~Shell()
@@ -73,6 +53,19 @@ MyShell::Shell::~Shell()
         delete[] CArgs;
         CArgs = nullptr;
     }
+}
+
+vector<string> MyShell::Shell::match_comands(const string &text)
+{
+    vector<string> Matches;
+    for (const auto& cmd : Commands) 
+    {
+        if (cmd.find(text) == 0) 
+        {
+            Matches.push_back(cmd);
+        }
+    }
+    return Matches;
 }
 
 bool MyShell::Shell::is_builtin(const string &cmd) const

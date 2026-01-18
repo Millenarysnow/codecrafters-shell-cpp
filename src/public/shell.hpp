@@ -17,6 +17,8 @@ namespace MyShell{
         Shell();
         ~Shell();
 
+        vector<string> match_comands(const string& text);
+
         bool get_start() const { return Start; }
         void set_start(bool val) { Start = val; }
 
