@@ -17,5 +17,13 @@ set(CMAKE_CXX_STANDARD 23) # Enable the C++23 standard
 
 add_executable(shell ${SOURCE_FILES})
 
-target_link_libraries(shell PRIVATE linenoise)
- 
+target_include_directories(shell PRIVATE 
+    src/public
+    src/public/Command
+) 
+
+if(WIN32)
+    target_link_libraries(shell PRIVATE linenoise)
+else()
+    target_link_libraries(shell PRIVATE readline)
+endif() 

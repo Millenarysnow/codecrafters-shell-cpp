@@ -15,16 +15,35 @@ constexpr char PATH_LIST_SEPARATOR = ':';
 #include <algorithm>
 #include <cstdlib>
 
-#include "linenoise.h"
-
 #include "exit.hpp"
 #include "echo.hpp"
 #include "type.hpp"
 #include "pwd.hpp"
 #include "cd.hpp"
 #include "utils.hpp"
+#include "lineInterface.hpp"
 
 static MyShell::Shell* ShellInstance = nullptr;
+
+char* command_generator(const char* text, int state) // 命令补全
+{
+    if (!ShellInstance) return nullptr;
+    
+    static std::set<string>::const_iterator it;
+    if (state == 0) {
+        it = ShellInstance->get_commands().begin();
+    }
+    
+    string text_str(text);
+    while (it != ShellInstance->get_commands().end()) {
+        const string& cmd = *it;
+        it++;
+        if (cmd.find(text_str) == 0) {
+            return strdup((cmd).c_str());
+        }
+    }
+    return nullptr;
+}
 
 MyShell::Shell::Shell()
 {
@@ -40,9 +59,7 @@ MyShell::Shell::Shell()
 
     get_path_dirs();
 
-    // ------ 配置 linenoise ------
-
-    linenoiseSetCompletionCallback(Completion);
+    MyShell::cross_platform_register_linecompletion();
 }
 
 MyShell::Shell::~Shell()
@@ -58,22 +75,6 @@ MyShell::Shell::~Shell()
     }
 }
 
-void MyShell::Shell::Completion(const char *buf, linenoiseCompletions *lc)
-{
-    if (!ShellInstance) return;
-    
-    string CurrentInput = string(buf);
-
-    for(const auto& cmd : ShellInstance->Commands)
-    {
-        if(cmd.find(CurrentInput) == 0)
-        {
-            const string candidate = cmd + " ";
-            linenoiseAddCompletion(lc, candidate.c_str());
-        }
-    }
-}
-
 bool MyShell::Shell::is_builtin(const string &cmd) const
 {
     return Commands.find(cmd) != Commands.end();
@@ -86,7 +87,7 @@ void MyShell::Shell::input()
     Args.clear();
     RedirectOperator = -1;
 
-    char* line = linenoise("$ ");
+    char* line = MyShell::cross_platform_readline("$ ");
 
     if(line == nullptr)
     {
@@ -94,14 +95,11 @@ void MyShell::Shell::input()
         return;
     }
 
+    // if(line && *line) add_history(line);
+
     Input = string(line);
 
     free(line);
-
-    if (!Input.empty() && Input.back() == '\r')
-    {
-        Input.pop_back();
-    }
 
     // ------ 分词并解析 ------
 
@@ -254,7 +252,7 @@ void MyShell::Shell::execute()
         }
         else
         {
-            std::cout << InputCommand << ": " << "command not found" << std::endl;
+            std::cout << Input << ": " << "command not found" << std::endl;
         }
     }
 

@@ -7,8 +7,6 @@
 
 using namespace std;
 
-struct linenoiseCompletions;
-
 namespace MyShell{
 
     class Command;
@@ -19,12 +17,11 @@ namespace MyShell{
         Shell();
         ~Shell();
 
-        static void Completion(const char* buf, linenoiseCompletions* lc);
-
         bool get_start() const { return Start; }
         void set_start(bool val) { Start = val; }
 
         const vector<string>& get_dirs_vector() const { return PathDir; }
+        const set<string>& get_commands() const { return Commands; }
         char** get_cargs() const { return CArgs; }
 
         bool is_builtin(const string& cmd) const;
